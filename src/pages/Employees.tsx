@@ -1,92 +1,58 @@
-import { useState } from "react";
-import { EmployeeManagement, Employee } from "@/components/employees/EmployeeManagement";
-
-// Mock employee data
-const mockEmployees: Employee[] = [
-  {
-    id: "1",
-    employeeId: "EMP001",
-    name: "Charan Kumar",
-    email: "charan@company.com",
-    phone: "+91 9876543210",
-    department: "Engineering",
-    position: "Software Developer",
-    fingerprintId: "FP_001",
-    status: "active",
-    joinDate: "2023-01-15T00:00:00Z",
-  },
-  {
-    id: "2",
-    employeeId: "EMP002",
-    name: "Priya Sharma",
-    email: "priya@company.com",
-    phone: "+91 9876543211",
-    department: "Marketing",
-    position: "Marketing Manager",
-    fingerprintId: "FP_002",
-    status: "active",
-    joinDate: "2023-02-01T00:00:00Z",
-  },
-  {
-    id: "3",
-    employeeId: "EMP003",
-    name: "Raj Patel",
-    email: "raj@company.com",
-    phone: "+91 9876543212",
-    department: "Engineering",
-    position: "Senior Developer",
-    status: "active",
-    joinDate: "2022-11-10T00:00:00Z",
-  },
-  {
-    id: "4",
-    employeeId: "EMP004",
-    name: "Anita Singh",
-    email: "anita@company.com",
-    phone: "+91 9876543213",
-    department: "HR",
-    position: "HR Manager",
-    fingerprintId: "FP_004",
-    status: "active",
-    joinDate: "2023-03-20T00:00:00Z",
-  },
-  {
-    id: "5",
-    employeeId: "EMP005",
-    name: "Vikram Gupta",
-    email: "vikram@company.com",
-    phone: "+91 9876543214",
-    department: "Finance",
-    position: "Accountant",
-    status: "inactive",
-    joinDate: "2022-08-15T00:00:00Z",
-  },
-];
+import { EmployeeManagement } from "@/components/employees/EmployeeManagement";
+import { addEmployeeToFirebase } from "@/services/employeeService";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Employees() {
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+  const { toast } = useToast();
 
-  const handleAddEmployee = (newEmployee: Omit<Employee, "id">) => {
-    const employee: Employee = {
-      ...newEmployee,
-      id: Date.now().toString(),
-    };
-    setEmployees(prev => [...prev, employee]);
+  const handleAddEmployee = async (newEmployee: { name: string; rollno: string }) => {
+    try {
+      // Convert to the expected Employee format for Firebase
+      const employeeData = {
+        name: newEmployee.name,
+        rollNo: newEmployee.rollno,
+        department: "General",
+        position: "Employee", 
+        email: "",
+        phone: "",
+        joinDate: new Date().toISOString(),
+        status: "active" as const
+      };
+      
+      const result = await addEmployeeToFirebase(employeeData);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Employee added successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add employee",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to add employee",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditEmployee = (id: string, updates: Partial<Employee>) => {
-    setEmployees(prev =>
-      prev.map(emp => (emp.id === id ? { ...emp, ...updates } : emp))
-    );
+  const handleEditEmployee = (id: string, updates: Partial<any>) => {
+    // Handle edit functionality here
+    console.log('Edit employee', id, updates);
   };
 
   const handleDeleteEmployee = (id: string) => {
-    setEmployees(prev => prev.filter(emp => emp.id !== id));
+    // Handle delete functionality here 
+    console.log('Delete employee', id);
   };
 
   return (
     <EmployeeManagement
-      employees={employees}
       onAddEmployee={handleAddEmployee}
       onEditEmployee={handleEditEmployee}
       onDeleteEmployee={handleDeleteEmployee}

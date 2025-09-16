@@ -155,7 +155,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-6 flex-grow">
           <div className="animate-fade-in">{children}</div>
         </main>
       </div>
