@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { AttendanceTable, AttendanceRecord } from "@/components/dashboard/AttendanceTable";
 import { Badge } from "@/components/ui/badge";
 import { fetchAttendanceData, getTodayAttendance } from "@/services/attendanceService";
+import * as XLSX from 'xlsx';
 
 export default function Reports() {
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -61,15 +62,27 @@ export default function Reports() {
 
     const dataToExport = reportData;
     
-    // In a real app, this would generate and download an Excel file
-    const dataStr = JSON.stringify(dataToExport, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${filename}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    // Create a new workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    
+    // Convert data to format suitable for Excel
+    const excelData = dataToExport.map(record => ({
+      'Employee ID': record.employeeId,
+      'Name': record.name,
+      'Login Time': record.loginTime || 'N/A',
+      'Logout Time': record.logoutTime || 'N/A',
+      'Status': record.status,
+      'Method': record.method
+    }));
+    
+    // Create worksheet from data
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Records');
+    
+    // Export to Excel file
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
   };
 
   return (
