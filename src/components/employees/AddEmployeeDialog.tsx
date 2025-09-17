@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import firebase from "firebase/compat/app";
-import "firebase/compat/database";
+import { addEmployeeToDatabase } from "@/services/employeeService";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -25,21 +24,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onAddEmployee }: AddEmpl
   const [rollNo, setRollNo] = useState("");
   const { toast } = useToast();
 
-  // Initialize Firebase app if not already initialized
-  if (!firebase.apps.length) {
-    firebase.initializeApp({
-      apiKey: "AIzaSyAjvIZxDNfrfN6dPLxgLR7fbKlrUA0SmV",
-      authDomain: "fingerprint-attendance-97741.firebaseapp.com",
-      databaseURL: "https://fingerprint-attendance-97741-default-rtdb.firebaseio.com",
-      projectId: "fingerprint-attendance-97741",
-      storageBucket: "fingerprint-attendance-97741.appspot.com",
-      messagingSenderId: "443013809983",
-      appId: "1:443013809983:web:9e8eba3280dd9ed3a2f58a"
-    });
-  }
-  const database = firebase.database();
-
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
     if (!name.trim() || !rollNo.trim()) {
       toast({
         title: "Missing Information",
@@ -49,31 +34,39 @@ export function AddEmployeeDialog({ open, onOpenChange, onAddEmployee }: AddEmpl
       return;
     }
 
-    const newEmployeeRef = database.ref("employees").push();
-    newEmployeeRef.set(
-      {
-        Name: name,
-        RollNo: rollNo,
-      },
-      (error) => {
-        if (error) {
-          toast({
-            title: "Error",
-            description: "Failed to add employee. Please try again.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Success",
-            description: "Employee added successfully.",
-          });
-          onAddEmployee({ name, rollno: rollNo, status: "active" });
-          setName("");
-          setRollNo("");
-          onOpenChange(false);
-        }
+    try {
+      const result = await addEmployeeToDatabase({
+        name: name.trim(),
+        fingerid: rollNo.trim(),
+        ph_number: "",
+        email_id: "",
+        joining_date: new Date().toISOString().split('T')[0],
+        is_active: true
+      });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Employee added successfully!",
+        });
+        onAddEmployee({ name: name.trim(), rollno: rollNo.trim(), status: "active" });
+        setName("");
+        setRollNo("");
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add employee. Please try again.",
+          variant: "destructive",
+        });
       }
-    );
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add employee. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

@@ -11,13 +11,14 @@ import {
 import { format } from "date-fns";
 
 export interface AttendanceRecord {
-  id: string;
-  employeeId: string;
+  sno: number;
   name: string;
-  loginTime?: string;
-  logoutTime?: string;
+  fingerid: string;
+  intime?: string;
+  outtime?: string;
   status: "present" | "absent" | "late" | "early_departure";
-  method: "fingerprint" | "manual";
+  attendance_date: string;
+  created_at: string;
 }
 
 interface AttendanceTableProps {
@@ -85,15 +86,15 @@ export function AttendanceTable({ records, title = "Today's Attendance" }: Atten
                 </TableRow>
               ) : (
                 records.map((record) => (
-                  <TableRow key={record.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow key={record.sno} className="hover:bg-muted/50 transition-colors">
                     <TableCell className="font-medium">{record.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{record.employeeId}</TableCell>
-                    <TableCell>{formatTime(record.loginTime)}</TableCell>
-                    <TableCell>{formatTime(record.logoutTime)}</TableCell>
+                    <TableCell className="text-muted-foreground">{record.fingerid}</TableCell>
+                    <TableCell>{formatTime(record.intime)}</TableCell>
+                    <TableCell>{formatTime(record.outtime)}</TableCell>
                     <TableCell>{getStatusBadge(record.status)}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {record.method}
+                        fingerprint
                       </Badge>
                     </TableCell>
                   </TableRow>

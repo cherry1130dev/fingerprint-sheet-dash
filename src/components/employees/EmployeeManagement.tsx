@@ -13,19 +13,20 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AddEmployeeDialog } from "./AddEmployeeDialog";
-import firebase from "firebase/compat/app";
-import "firebase/compat/database";
+import { fetchEmployees, updateEmployee, deleteEmployee, type Employee as DatabaseEmployee } from "@/services/employeeService";
 
 export interface Employee {
-  id: string;
+  empid: number;
   name: string;
-  rollno: string;
-  fingerprintId?: string;
-  status: "active" | "inactive";
+  fingerid: string;
+  ph_number?: string;
+  email_id?: string;
+  joining_date?: string;
+  is_active: boolean;
 }
 
 interface EmployeeManagementProps {
-  onAddEmployee: (employee: Omit<Employee, "id">) => void;
+  onAddEmployee: (employee: { name: string; rollno: string; status: "active" }) => void;
   onEditEmployee: (id: string, employee: Partial<Employee>) => void;
   onDeleteEmployee: (id: string) => void;
 }
@@ -39,52 +40,43 @@ export function EmployeeManagement({
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
 
-  // Initialize Firebase app if not already initialized
   useEffect(() => {
-    if (!firebase.apps.length) {
-      firebase.initializeApp({
-        apiKey: "AIzaSyAjvIZxDNfrfN6dPLxgLR7fbKlrUA0SmV",
-        authDomain: "fingerprint-attendance-97741.firebaseapp.com",
-        databaseURL: "https://fingerprint-attendance-97741-default-rtdb.firebaseio.com",
-        projectId: "fingerprint-attendance-97741",
-        storageBucket: "fingerprint-attendance-97741.appspot.com",
-        messagingSenderId: "443013809983",
-        appId: "1:443013809983:web:9e8eba3280dd9ed3a2f58a"
-      });
-    }
+    const loadEmployees = async () => {
+      const employeeData = await fetchEmployees();
+      setEmployees(employeeData);
+    };
+    
+    loadEmployees();
   }, []);
 
-  useEffect(() => {
-    const database = firebase.database();
-    const employeesRef = database.ref("students");
-
-    const handleData = (snapshot: firebase.database.DataSnapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const loadedEmployees: Employee[] = Object.entries(data).map(([key, value]: [string, any]) => ({
-          id: key,
-          name: value.name,
-          rollno: value.rollno,
-          fingerprintId: value.fingerprintId || undefined,
-          status: "active",
-        }));
-        setEmployees(loadedEmployees);
-      } else {
-        setEmployees([]);
-      }
-    };
-
-    employeesRef.on("value", handleData);
-
-    return () => {
-      employeesRef.off("value", handleData);
-    };
-  }, []);
-
-  const filteredEmployees = employees.filter((employee) =>
+  const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.rollno.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.fingerid.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleEdit = async (empid: number) => {
+    // Implement edit functionality
+    onEditEmployee(empid.toString(), {});
+  };
+
+  const handleDelete = async (empid: number) => {
+    const result = await deleteEmployee(empid);
+    if (result.success) {
+      setEmployees(employees.filter(emp => emp.empid !== empid));
+    }
+    onDeleteEmployee(empid.toString());
+  };
+
+  const handleAddEmployee = (employee: { name: string; rollno: string; status: "active" }) => {
+    // Reload employees after adding
+    const loadEmployees = async () => {
+      const employeeData = await fetchEmployees();
+      setEmployees(employeeData);
+    };
+    
+    loadEmployees();
+    onAddEmployee(employee);
+  };
 
   return (
     <div className="space-y-6">
@@ -109,7 +101,7 @@ export function EmployeeManagement({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search employees by name or roll number..."
+              placeholder="Search employees by name or finger ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -130,7 +122,7 @@ export function EmployeeManagement({
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-semibold">Roll Number</TableHead>
+                  <TableHead className="font-semibold">Finger ID</TableHead>
                   <TableHead className="font-semibold">Name</TableHead>
                   <TableHead className="font-semibold">Fingerprint</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
@@ -146,35 +138,29 @@ export function EmployeeManagement({
                   </TableRow>
                 ) : (
                   filteredEmployees.map((employee) => (
-                    <TableRow key={employee.id} className="hover:bg-muted/50 transition-colors">
-                      <TableCell className="font-medium">{employee.rollno}</TableCell>
+                    <TableRow key={employee.empid} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="font-medium">{employee.fingerid}</TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{employee.name}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {employee.fingerprintId ? (
-                          <Badge variant="outline" className="bg-success-light text-success">
-                            <Fingerprint className="h-3 w-3 mr-1" />
-                            Enrolled
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-success-light text-success">
-                            Enrolled
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                          <Fingerprint className="h-3 w-3 mr-1" />
+                          Registered
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={employee.status === "active" ? "default" : "secondary"}
+                          variant={employee.is_active ? "default" : "secondary"}
                           className={
-                            employee.status === "active"
+                            employee.is_active
                               ? "bg-success text-success-foreground"
                               : "bg-muted text-muted-foreground"
                           }
                         >
-                          {employee.status}
+                          {employee.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -183,6 +169,7 @@ export function EmployeeManagement({
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => handleEdit(employee.empid)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -190,7 +177,7 @@ export function EmployeeManagement({
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => onDeleteEmployee(employee.id)}
+                            onClick={() => handleDelete(employee.empid)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -209,7 +196,7 @@ export function EmployeeManagement({
       <AddEmployeeDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onAddEmployee={onAddEmployee}
+        onAddEmployee={handleAddEmployee}
       />
     </div>
   );

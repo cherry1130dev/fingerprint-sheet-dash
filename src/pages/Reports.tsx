@@ -27,7 +27,7 @@ export default function Reports() {
       } else {
         // Filter by selectedDate (format yyyy-mm-dd)
         filteredData = allData.filter(record => {
-          const recordDate = new Date(record.date.split("-").reverse().join("-"));
+          const recordDate = new Date(record.attendance_date);
           return recordDate.toISOString().split("T")[0] === selectedDate;
         });
       }
@@ -43,7 +43,7 @@ export default function Reports() {
 
   const filteredData = reportData.filter((record) =>
     record.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+    record.fingerid.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleExportToExcel = (type: 'today' | 'yesterday' | 'custom' = downloadType) => {
@@ -67,12 +67,13 @@ export default function Reports() {
     
     // Convert data to format suitable for Excel
     const excelData = dataToExport.map(record => ({
-      'Employee ID': record.employeeId,
+      'Serial No': record.sno,
       'Name': record.name,
-      'Login Time': record.loginTime || 'N/A',
-      'Logout Time': record.logoutTime || 'N/A',
+      'Finger ID': record.fingerid,
+      'In Time': record.intime || 'N/A',
+      'Out Time': record.outtime || 'N/A',
       'Status': record.status,
-      'Method': record.method
+      'Date': record.attendance_date
     }));
     
     // Create worksheet from data

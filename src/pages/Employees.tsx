@@ -1,5 +1,5 @@
 import { EmployeeManagement } from "@/components/employees/EmployeeManagement";
-import { addEmployeeToFirebase } from "@/services/employeeService";
+import { addEmployeeToDatabase } from "@/services/employeeService";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Employees() {
@@ -19,7 +19,14 @@ export default function Employees() {
         status: "active" as const
       };
       
-      const result = await addEmployeeToFirebase(employeeData);
+      const result = await addEmployeeToDatabase({
+        name: employeeData.name,
+        fingerid: employeeData.rollNo, // Using rollNo as fingerid for compatibility
+        ph_number: "",
+        email_id: "",
+        joining_date: new Date().toISOString().split('T')[0],
+        is_active: true
+      });
       if (result.success) {
         toast({
           title: "Success",
